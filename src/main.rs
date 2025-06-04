@@ -1,3 +1,5 @@
+use std::env;
+
 use clap::Parser;
 use tonic::{Request, Response, Status, transport::Server};
 
@@ -31,11 +33,12 @@ struct Args {
     port: String,
 
     #[arg(
+        short = 'a',
         long,
-        default_value = "authorization",
-        help = "JWT token for authorization (default: authorization)"
+        default_value = "false",
+        help = "use authorization (default: false)"
     )]
-    authorization: String,
+    authorization: bool,
 }
 
 #[derive(Debug, Default)]
@@ -62,14 +65,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let addr = format!("{}:{}", args.host, args.port).parse()?;
-    let auth_interceptor = AuthInterceptor::new(args.authorization.clone());
-    let greeter = MyGreeter::default();
-    println!("Server listening on {}", addr);
 
-    Server::builder()
-        .add_service(GreeterServer::with_interceptor(greeter, auth_interceptor))
-        .serve(addr)
-        .await?;
+    println!(
+        "Server listening on {}:{}. use authorization is {}",
+        args.host, args.port, args.authorization
+    );
+
+    let greeter = MyGreeter::default();
+    if args.authorization {
+        let auth_interceptor = AuthInterceptor::new(
+            env::var("AUTHORIZATION").unwrap_or_else(|_| "authorization".to_string()),
+        );
+        Server::builder()
+            .add_service(GreeterServer::with_interceptor(greeter, auth_interceptor))
+            .serve(addr)
+            .await?;
+    } else {
+        Server::builder()
+            .add_service(GreeterServer::new(greeter))
+            .serve(addr)
+            .await?;
+    }
 
     Ok(())
 }
