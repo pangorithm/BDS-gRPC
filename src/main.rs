@@ -1,6 +1,10 @@
+#[cfg(debug_assertions)]
+use dotenv::dotenv;
+
 use std::env;
 
 use clap::Parser;
+use sea_orm::Database;
 use tonic::{Request, Response, Status, transport::Server};
 
 pub mod hello {
@@ -69,6 +73,9 @@ impl GreeterService for MyGreeter {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(debug_assertions)]
+    dotenv().ok();
+
     let args = Args::parse();
 
     let addr = format!("{}:{}", args.host, args.port).parse()?;
@@ -77,6 +84,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Server listening on {}:{}. use authorization is {}",
         args.host, args.port, args.authorization
     );
+
+    let postgres_con_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        env::var("POSTGRES_BDS_USER").unwrap(),
+        env::var("POSTGRES_BDS_PASSWORD").unwrap(),
+        env::var("POSTGRES_HOST").unwrap(),
+        env::var("POSTGRES_PORT").unwrap(),
+        env::var("POSTGRES_BDS_DB").unwrap()
+    );
+    let db = Database::connect(postgres_con_url)
+        .await
+        .expect("Failed to connect");
+    println!("✅ Successfully connected to the database!");
 
     let greeter = MyGreeter::default();
     if args.authorization {

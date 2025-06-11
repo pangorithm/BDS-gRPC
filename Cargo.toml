@@ -7,8 +7,10 @@ build = "build.rs"
 [dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
 prost = "0.13.5"
+sea-orm = { version = "1.1.12", features = ["sqlx-postgres", "runtime-tokio-native-tls"] }
 tokio = { version = "1.45.1", features = ["full"] }
 tonic = "0.13.1"
+dotenv = "0.15.0"
 
 [build-dependencies]
 tonic-build = "0.13.1"
