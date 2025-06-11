@@ -3,15 +3,22 @@ use std::env;
 use clap::Parser;
 use tonic::{Request, Response, Status, transport::Server};
 
+pub mod hello {
+    tonic::include_proto!("hello");
+}
+
 use hello::greeter_server::{Greeter, GreeterServer};
 use hello::{HelloReply, HelloRequest};
 
+pub mod key_value {
+    tonic::include_proto!("key_value");
+}
+
+use key_value::key_value_store_server::{KeyValueStore, KeyValueStoreServer};
+use key_value::{GetRequest, GetResponse, KeyValue, PutRequest, PutResponse};
+
 mod interceptor;
 use interceptor::auth::AuthInterceptor;
-
-pub mod hello {
-    tonic::include_proto!("hello"); // "hello"는 .proto의 package명
-}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]

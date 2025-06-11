@@ -1,0 +1,3 @@
+[submodule "BDS-proto"]
+	path = BDS-proto
+	url = git@github.com:pangorithm/BDS-proto.git
