@@ -7,14 +7,14 @@ pub mod hello {
     tonic::include_proto!("hello");
 }
 
-use hello::greeter_server::{Greeter, GreeterServer};
-use hello::{HelloReply, HelloRequest};
+use hello::greeter_service_server::{GreeterService, GreeterServiceServer};
+use hello::{SayHelloRequest, SayHelloResponse};
 
 pub mod key_value {
     tonic::include_proto!("key_value");
 }
 
-use key_value::key_value_store_server::{KeyValueStore, KeyValueStoreServer};
+use key_value::key_value_store_service_server::{KeyValueStoreService, KeyValueStoreServiceServer};
 use key_value::{GetRequest, GetResponse, KeyValue, PutRequest, PutResponse};
 
 mod interceptor;
@@ -52,14 +52,14 @@ struct Args {
 pub struct MyGreeter {}
 
 #[tonic::async_trait]
-impl Greeter for MyGreeter {
+impl GreeterService for MyGreeter {
     async fn say_hello(
         &self,
-        request: Request<HelloRequest>,
-    ) -> Result<Response<HelloReply>, Status> {
+        request: Request<SayHelloRequest>,
+    ) -> Result<Response<SayHelloResponse>, Status> {
         println!("Got a request from {:?}", request.remote_addr());
 
-        let reply = HelloReply {
+        let reply = SayHelloResponse {
             message: format!("Hello {}!", request.into_inner().name),
         };
 
@@ -84,12 +84,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             env::var("AUTHORIZATION").unwrap_or_else(|_| "authorization".to_string()),
         );
         Server::builder()
-            .add_service(GreeterServer::with_interceptor(greeter, auth_interceptor))
+            .add_service(GreeterServiceServer::with_interceptor(
+                greeter,
+                auth_interceptor,
+            ))
             .serve(addr)
             .await?;
     } else {
         Server::builder()
-            .add_service(GreeterServer::new(greeter))
+            .add_service(GreeterServiceServer::new(greeter))
             .serve(addr)
             .await?;
     }
