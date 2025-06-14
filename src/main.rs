@@ -5,21 +5,14 @@ use std::env;
 
 use clap::Parser;
 use sea_orm::Database;
-use tonic::{Request, Response, Status, transport::Server};
+use tonic::transport::Server;
 
-pub mod hello {
-    tonic::include_proto!("hello");
-}
+mod common;
+mod entity;
 
-use hello::greeter_service_server::{GreeterService, GreeterServiceServer};
-use hello::{SayHelloRequest, SayHelloResponse};
-
-pub mod key_value {
-    tonic::include_proto!("key_value");
-}
-
-use key_value::key_value_store_service_server::{KeyValueStoreService, KeyValueStoreServiceServer};
-use key_value::{GetRequest, GetResponse, KeyValue, PutRequest, PutResponse};
+mod packet;
+use packet::proto::packet_logging_service_server::PacketLoggingServiceServer;
+use packet::service::PacketService;
 
 mod interceptor;
 use interceptor::auth::AuthInterceptor;
@@ -55,22 +48,6 @@ struct Args {
 #[derive(Debug, Default)]
 pub struct MyGreeter {}
 
-#[tonic::async_trait]
-impl GreeterService for MyGreeter {
-    async fn say_hello(
-        &self,
-        request: Request<SayHelloRequest>,
-    ) -> Result<Response<SayHelloResponse>, Status> {
-        println!("Got a request from {:?}", request.remote_addr());
-
-        let reply = SayHelloResponse {
-            message: format!("Hello {}!", request.into_inner().name),
-        };
-
-        Ok(Response::new(reply))
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(debug_assertions)]
@@ -98,21 +75,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to connect");
     println!("✅ Successfully connected to the database!");
 
-    let greeter = MyGreeter::default();
+    let packet_repository = packet::repository::PacketRepository::new(db.clone());
+    let packet_service = PacketService::new(packet_repository);
+
     if args.authorization {
         let auth_interceptor = AuthInterceptor::new(
             env::var("AUTHORIZATION").unwrap_or_else(|_| "authorization".to_string()),
         );
         Server::builder()
-            .add_service(GreeterServiceServer::with_interceptor(
-                greeter,
-                auth_interceptor,
+            .add_service(PacketLoggingServiceServer::with_interceptor(
+                packet_service,
+                auth_interceptor.clone(),
             ))
             .serve(addr)
             .await?;
     } else {
         Server::builder()
-            .add_service(GreeterServiceServer::new(greeter))
+            .add_service(PacketLoggingServiceServer::new(packet_service))
             .serve(addr)
             .await?;
     }

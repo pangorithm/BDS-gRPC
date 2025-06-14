@@ -5,7 +5,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile_protos(
             &[
                 "proto/hello.proto",
-                "BDS-proto/common/key_value.proto", // BDS-proto 파일 추가
+                "BDS-proto/common/key_value.proto",
+                "BDS-proto/packet.proto",
             ],
             &["proto", "BDS-proto"], // proto 파일이 있는 디렉토리 지정
         )?;
