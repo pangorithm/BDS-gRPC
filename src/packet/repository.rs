@@ -23,7 +23,7 @@ impl PacketRepository {
 
         let packet_log = ActiveModel {
             packet_id: NotSet,
-            packet_type: Set(packet.sender),
+            packet_type: Set(packet.direction),
             event_name: Set(packet.event),
             des_json: Set(json_value),
             created_at: NotSet,
